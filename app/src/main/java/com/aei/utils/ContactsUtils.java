@@ -2,8 +2,10 @@ package com.aei.utils;
 
 import android.app.Activity;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.database.Cursor;
 import android.provider.ContactsContract;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +15,9 @@ public class ContactsUtils {
         private String name;
         private List<String> phoneNumber;
 
-        public Contact(){}
+        public Contact(){
+            phoneNumber = new ArrayList<>();
+        }
 
         public Contact(String name, String email, List<String> phoneNumber) {
             this.name = name;
@@ -36,8 +40,8 @@ public class ContactsUtils {
             this.phoneNumber = phoneNumber;
         }
     }
-    private Activity activity;
-    public ContactsUtils(Activity activity){
+    private Context activity;
+    public ContactsUtils(Context activity){
         this.activity = activity;
     }
 
@@ -67,6 +71,7 @@ public class ContactsUtils {
                     }
                     pCur.close();
                 }
+                result.add(contact);
             }
         }
         if(cur != null)

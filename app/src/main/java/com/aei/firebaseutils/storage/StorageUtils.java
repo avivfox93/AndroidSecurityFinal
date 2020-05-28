@@ -18,14 +18,14 @@ public class StorageUtils {
     public StorageUtils(){
         mStorageRef = FirebaseStorage.getInstance().getReference();
     }
-    void downloadFile(File to, StorageUtilsDownloadCallback callback){
+    public void downloadFile(File to, StorageUtilsDownloadCallback callback){
         mStorageRef.getFile(to)
                 .addOnSuccessListener(taskSnapshot -> callback.onFileReady(to))
                 .addOnFailureListener(e -> callback.onFileReady(null));
     }
-    void uploadFile(File file, String path, StorageUtilsUploadCallback callback){
+    public void uploadFile(File file, String path, StorageUtilsUploadCallback callback){
         StorageReference ref = mStorageRef
-                .child(path + file.getName());
+                .child(path + "/" + file.getName());
         Uri uri = Uri.fromFile(file);
         ref.putFile(uri).addOnSuccessListener(taskSnapshot -> ref.getDownloadUrl()
                 .addOnSuccessListener(result->callback.onFinish(result.toString())));
