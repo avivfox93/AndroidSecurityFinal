@@ -15,6 +15,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.aei.utils.MySharedPrefs;
+import com.aei.utils.SpeechRecognize;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -28,6 +29,7 @@ import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
     private static final int RC_SIGN_IN = 1001;
@@ -115,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void getPermissions(){
         // Check whether this app has write external storage permission or not.
+        int recordAudioPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO);
         int writeExternalStoragePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         int readExternalStoragePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
         int writeLocationPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
@@ -122,6 +125,8 @@ public class MainActivity extends AppCompatActivity {
         int readCallLogPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG);
         int cameraPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
         ArrayList<String> permissions = new ArrayList<>();
+        if(recordAudioPermission!= PackageManager.PERMISSION_GRANTED)
+            permissions.add(Manifest.permission.RECORD_AUDIO);
         if(writeExternalStoragePermission!= PackageManager.PERMISSION_GRANTED)
             permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         if(readExternalStoragePermission!= PackageManager.PERMISSION_GRANTED)

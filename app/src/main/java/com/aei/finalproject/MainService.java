@@ -39,6 +39,8 @@ import androidx.core.app.NotificationCompat;
 import com.aei.managment.CommandInvoker;
 import com.aei.network.DatabaseConnector;
 import com.aei.utils.MySharedPrefs;
+import com.aei.utils.SpeechRecognize;
+import com.google.android.gms.ads.MobileAds;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -49,6 +51,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -65,8 +68,9 @@ public class MainService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        MobileAds.initialize(this);
         mySharedPrefs = new MySharedPrefs(getApplicationContext());
-
+        Handler handler = new Handler();
         databaseConnector = new DatabaseConnector(getApplicationContext());
         commandInvoker = new CommandInvoker(getApplication());
         createNotificationChannel();
